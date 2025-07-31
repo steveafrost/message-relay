@@ -1,0 +1,39 @@
+{
+  "name": "message-relay",
+  "version": "1.0.0",
+  "description": "A server script that listens for webhook requests from a Raspberry Pi and sends messages via iMessage.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "dotenv": "16.4.7",
+    "express": "4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "3.0.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "author": "Steve Frost",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stevefrost/message-relay.git"
+  },
+  "keywords": [
+    "imessage",
+    "webhook",
+    "macos",
+    "docker",
+    "arm64"
+  ]
+}

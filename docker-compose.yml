@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  message-relay:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: message-relay
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - PHONE_NUMBERS=${PHONE_NUMBERS}
+    volumes:
+      # Mount the host's Messages app for AppleScript access
+      - /System/Applications/Messages.app:/System/Applications/Messages.app:ro
+      # Mount the host's osascript binary
+      - /usr/bin/osascript:/usr/bin/osascript:ro
+      # Mount the host's AppleScript libraries
+      - /System/Library/ScriptingAdditions:/System/Library/ScriptingAdditions:ro
+      # Mount additional system libraries needed for AppleScript
+      - /System/Library/Frameworks:/System/Library/Frameworks:ro
+      - /usr/lib:/usr/lib:ro
+      - /usr/libexec:/usr/libexec:ro
+    restart: unless-stopped
+    platform: linux/arm64
+    # Add necessary privileges to access host system
+    privileged: true
+    networks:
+      - message-relay-network
+    # Resource limits for stability
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Health check configuration
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  message-relay-network:
+    driver: bridge 
