@@ -1,165 +1,360 @@
-# Deployment & Future-Proofing Guide
+# Deployment Guide
 
-## Current Future-Proofing Features
+## 🚀 Quick Start
 
-### ✅ Implemented
-- **ARM64 Compatibility**: Optimized for Apple Silicon (M1/M2/M3)
-- **Multi-stage Docker Build**: Smaller, more secure images
-- **Graceful Shutdown**: Proper signal handling for container orchestration
-- **Health Checks**: Built-in monitoring endpoints
-- **Resource Limits**: Prevents resource exhaustion
-- **Logging Strategy**: Rotated logs with size limits
-- **Security**: Non-root user, minimal attack surface
-- **Dependency Pinning**: Exact versions for reproducible builds
+### Docker Deployment (Recommended)
 
-### 🔄 Future Considerations
-
-#### 1. **Monitoring & Observability**
 ```bash
-# Add to docker-compose.yml for production monitoring
-services:
-  prometheus:
-    image: prom/prometheus:latest
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - "3001:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=your_password
+# 1. Clone and setup
+git clone <repository-url>
+cd message-relay
+
+# 2. Create environment file
+echo "PHONE_NUMBERS=+1234567890,+1987654321" > .env
+
+# 3. Deploy with Docker Compose
+docker-compose up -d
+
+# 4. Test the service
+curl -X POST http://localhost:3000/webhook \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Hello from deployment!"}'
 ```
 
-#### 2. **Backup Strategy**
+### Direct macOS Execution (For iMessage Testing)
+
 ```bash
-# Automated backup script
-#!/bin/bash
-DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="/backups"
+# 1. Make script executable
+chmod +x run-macos.sh
 
-# Backup environment variables
-cp .env $BACKUP_DIR/env_$DATE
+# 2. Run directly on macOS
+./run-macos.sh
 
-# Backup Docker volumes (if using persistent storage)
-docker run --rm -v imessage-server_data:/data -v $BACKUP_DIR:/backup alpine tar czf /backup/data_$DATE.tar.gz -C /data .
+# 3. Test with actual Messages
+curl -X POST http://localhost:3000/webhook \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Testing iMessage!"}'
 ```
 
-#### 3. **Auto-update Strategy**
+## 🏗️ Architecture Overview
+
+### ARM64-Optimized Docker Setup
+
+- **Base Image**: `arm64v8/node:20-alpine`
+- **Platform**: `linux/arm64`
+- **Architecture**: Apple Silicon (M1/M2/M3) optimized
+- **Resource Limits**: 512MB memory, 0.5 CPU cores
+- **Health Checks**: Automatic monitoring every 30s
+
+### Service Components
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Webhook       │    │   Message        │    │   iMessage      │
+│   Handler       │───▶│   Processor      │───▶│   Sender        │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+```
+
+## 📋 Deployment Checklist
+
+### Pre-Deployment
+
+- [ ] macOS with Messages app installed
+- [ ] Docker Desktop running
+- [ ] Phone numbers configured in `.env`
+- [ ] Network access to port 3000
+- [ ] iMessage enabled for target numbers
+
+### Deployment Steps
+
+1. **Environment Setup**
+   ```bash
+   # Create .env file
+   cat > .env << EOF
+   PHONE_NUMBERS=+1234567890,+1987654321
+   PORT=3000
+   NODE_ENV=production
+   EOF
+   ```
+
+2. **Docker Deployment**
+   ```bash
+   # Build and start
+   docker-compose up --build -d
+   
+   # Verify deployment
+   docker ps
+   docker logs message-relay
+   ```
+
+3. **Health Check**
+   ```bash
+   # Test health endpoint
+   curl http://localhost:3000/health
+   
+   # Test webhook
+   curl -X POST http://localhost:3000/webhook \
+     -H "Content-Type: application/json" \
+     -d '{"message": "Deployment test"}'
+   ```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `PHONE_NUMBERS` | ✅ | - | Comma-separated phone numbers |
+| `PORT` | ❌ | `3000` | Server port |
+| `NODE_ENV` | ❌ | `production` | Environment mode |
+
+### Docker Configuration
+
 ```yaml
-# Add to docker-compose.yml
-services:
-  watchtower:
-    image: containrrr/watchtower
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - WATCHTOWER_CLEANUP=true
-      - WATCHTOWER_POLL_INTERVAL=86400
-    restart: unless-stopped
+# Key Docker settings
+platform: linux/arm64          # Apple Silicon optimization
+memory: 512M                   # Memory limit
+cpus: '0.5'                   # CPU limit
+restart: unless-stopped        # Auto-restart policy
+healthcheck: 30s interval      # Health monitoring
 ```
 
-#### 4. **Security Enhancements**
-```dockerfile
-# Add to Dockerfile for additional security
-RUN apk add --no-cache \
-    ca-certificates \
-    && update-ca-certificates
+## 📊 Monitoring & Health Checks
 
-# Add security scanning
-RUN npm audit --audit-level=high
+### Built-in Monitoring
+
+```bash
+# Health check endpoint
+curl http://localhost:3000/health
+
+# Container health
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+# Resource usage
+docker stats message-relay
 ```
 
-## Migration Paths
+### Log Monitoring
 
-### Node.js Version Updates
-- Current: Node.js 20
-- Future: Node.js 22+ (LTS releases)
-- Strategy: Update Dockerfile base image and test thoroughly
+```bash
+# View logs
+docker-compose logs -f
 
-### macOS Version Compatibility
-- Current: macOS 13+ (Ventura)
-- Future: macOS 15+ (Sequoia)
-- Strategy: Test AppleScript compatibility with new macOS versions
+# Filter error logs
+docker-compose logs | grep ERROR
 
-### Docker Compose Version
-- Current: 3.8
-- Future: 4.0+
-- Strategy: Update syntax and test new features
+# Recent logs
+docker-compose logs --tail=100
+```
 
-## Monitoring Checklist
+## 🔍 Troubleshooting
 
-### Daily
-- [ ] Check container health status
-- [ ] Review application logs
-- [ ] Verify webhook endpoint responsiveness
+### Common Issues
 
-### Weekly
-- [ ] Review resource usage
-- [ ] Check for security updates
-- [ ] Backup configuration files
+#### 1. Container Won't Start
+```bash
+# Check for port conflicts
+lsof -i :3000
 
-### Monthly
-- [ ] Update dependencies
-- [ ] Review and rotate logs
-- [ ] Test disaster recovery procedures
+# Rebuild container
+docker-compose down
+docker-compose up --build -d
+```
 
-## Disaster Recovery
+#### 2. Messages Not Sending
+```bash
+# Check container logs
+docker logs message-relay
 
-### Quick Recovery Steps
-1. **Container Issues**: `docker-compose restart imessage-server`
-2. **Configuration Issues**: Restore from `.env` backup
-3. **System Issues**: `docker-compose down && docker-compose up -d`
+# Verify Messages app is open
+osascript -e 'tell application "Messages" to activate'
 
-### Full Recovery
-1. Clone repository to new machine
-2. Restore `.env` file from backup
-3. Run `docker-compose up -d`
-4. Test webhook endpoint
+# Test AppleScript directly
+osascript -e 'tell application "Messages" to send "test" to buddy "+1234567890"'
+```
 
-## Performance Optimization
+#### 3. Permission Issues
+```bash
+# Fix script permissions
+chmod +x run-macos.sh
+
+# Check Docker permissions
+docker system info
+```
+
+### Debug Commands
+
+```bash
+# Container inspection
+docker inspect message-relay
+
+# Resource usage
+docker stats message-relay
+
+# Network connectivity
+docker exec message-relay ping -c 3 google.com
+
+# Process list
+docker exec message-relay ps aux
+```
+
+## 🔄 Maintenance
+
+### Regular Tasks
+
+#### Daily
+- [ ] Check container health: `docker ps`
+- [ ] Review logs: `docker-compose logs --tail=50`
+- [ ] Test webhook: `curl -X POST http://localhost:3000/webhook -H "Content-Type: application/json" -d '{"message": "Daily health check"}'`
+
+#### Weekly
+- [ ] Update dependencies: `npm update`
+- [ ] Rebuild container: `docker-compose build --no-cache`
+- [ ] Backup configuration: `cp .env .env.backup`
+
+#### Monthly
+- [ ] Security audit: `npm audit`
+- [ ] Update base image in Dockerfile
+- [ ] Review resource usage patterns
+
+### Update Procedures
+
+```bash
+# 1. Stop current deployment
+docker-compose down
+
+# 2. Pull latest changes
+git pull origin main
+
+# 3. Rebuild with new code
+docker-compose up --build -d
+
+# 4. Verify deployment
+curl http://localhost:3000/health
+```
+
+## 🛡️ Security Considerations
+
+### Current Security Features
+
+- ✅ Non-root user in container
+- ✅ Minimal base image (Alpine Linux)
+- ✅ Resource limits to prevent DoS
+- ✅ Health checks for monitoring
+- ✅ Graceful shutdown handling
+
+### Recommended Security Practices
+
+```bash
+# Regular security updates
+npm audit --audit-level=high
+
+# Container vulnerability scanning
+docker scan message-relay-message-relay
+
+# Network isolation (if needed)
+# Add to docker-compose.yml:
+# networks:
+#   - internal-network
+```
+
+## 📈 Scaling Considerations
 
 ### Current Resource Limits
-- Memory: 512MB max, 256MB reserved
-- CPU: 0.5 cores max, 0.25 cores reserved
 
-### Scaling Considerations
-- **Horizontal**: Multiple containers behind load balancer
-- **Vertical**: Increase resource limits based on usage
-- **Caching**: Add Redis for message queuing
+- **Memory**: 512MB max, 256MB reserved
+- **CPU**: 0.5 cores max, 0.25 cores reserved
+- **Storage**: Minimal (Alpine base)
 
-## Security Best Practices
+### Scaling Options
 
-### Implemented
-- ✅ Non-root user
-- ✅ Minimal base image
-- ✅ Read-only volume mounts
-- ✅ Resource limits
-
-### Recommended Additions
-- 🔄 Regular security audits
-- 🔄 Automated vulnerability scanning
-- 🔄 Secrets management (Docker Secrets)
-- 🔄 Network segmentation
-
-## Long-term Maintenance
-
-### Dependency Management
-```bash
-# Monthly dependency updates
-npm update
-npm audit fix
-docker-compose build --no-cache
+#### Vertical Scaling
+```yaml
+# Increase in docker-compose.yml
+deploy:
+  resources:
+    limits:
+      memory: 1G
+      cpus: '1.0'
 ```
 
-### Version Control Strategy
-- Tag releases with semantic versioning
-- Maintain changelog
-- Document breaking changes
+#### Horizontal Scaling
+```bash
+# Multiple containers (requires load balancer)
+docker-compose up -d --scale message-relay=3
+```
 
-### Documentation Updates
-- Keep README.md current
-- Document configuration changes
-- Maintain troubleshooting guide 
+## 🔄 Backup & Recovery
+
+### Backup Strategy
+
+```bash
+# Backup configuration
+cp .env .env.backup.$(date +%Y%m%d)
+
+# Backup Docker images
+docker save message-relay-message-relay > message-relay-backup.tar
+
+# Backup logs (if persistent)
+docker run --rm -v message-relay_logs:/data -v $(pwd):/backup alpine tar czf /backup/logs-backup.tar.gz -C /data .
+```
+
+### Recovery Procedures
+
+#### Quick Recovery
+```bash
+# Restart service
+docker-compose restart
+
+# Restore from backup
+cp .env.backup.20240101 .env
+docker-compose up -d
+```
+
+#### Full Recovery
+```bash
+# 1. Clone repository
+git clone <repository-url>
+cd message-relay
+
+# 2. Restore configuration
+cp .env.backup.20240101 .env
+
+# 3. Rebuild and deploy
+docker-compose up --build -d
+
+# 4. Verify recovery
+curl http://localhost:3000/health
+```
+
+## 🚀 Production Deployment
+
+### Production Checklist
+
+- [ ] Environment variables configured
+- [ ] Health monitoring enabled
+- [ ] Log rotation configured
+- [ ] Backup strategy implemented
+- [ ] Security measures in place
+- [ ] Resource limits set
+- [ ] Documentation updated
+
+### Production Commands
+
+```bash
+# Deploy to production
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+# Monitor production
+docker-compose logs -f --tail=100
+
+# Scale production
+docker-compose up -d --scale message-relay=2
+```
+
+## 📚 Additional Resources
+
+- [Docker Documentation](https://docs.docker.com/)
+- [Node.js Best Practices](https://nodejs.org/en/docs/guides/)
+- [ARM64 Architecture Guide](https://developer.arm.com/)
+- [AppleScript Reference](https://developer.apple.com/library/archive/documentation/AppleScript/Conceptual/AppleScriptLangGuide/) 
