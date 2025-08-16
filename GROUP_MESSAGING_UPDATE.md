@@ -26,9 +26,10 @@ Updated the message-relay service to send group messages instead of individual m
 - **API response changes**: Updated response format to show recipient count
 - **Service component updates**: Noted group messaging support
 
-### 5. Added Testing (`test-group-message.js`)
-- **Test script**: Direct testing of group messaging functionality
-- **NPM scripts**: Added `npm test` and `npm run test:group` commands
+### 5. Added Testing
+- **`test-group-message.js`**: Direct testing of group messaging functionality
+- **`test-webhook-flexibility.js`**: Comprehensive testing of webhook flexibility
+- **NPM scripts**: Added `npm test`, `npm run test:group`, and `npm run test:webhook` commands
 
 ## How It Works
 
@@ -46,13 +47,28 @@ for (const number of phoneNumbers) {
 await sendGroupMessage(validation.phoneNumbers, message);
 ```
 
-### AppleScript Group Chat Creation
-```applescript
-tell application "Messages"
-  set groupChat to (chat id of (make new group chat with participants {"+1234567890", "+1987654321"}))
-  send "Your message" to groupChat
-end tell
+### New Webhook Request Format
+```json
+{
+  "message": "Your message here",
+  "phoneNumbers": ["+1234567890", "+1987654321"]
+}
 ```
+
+**Phone Number Sources (in order of priority):**
+1. **Request body**: `phoneNumbers` array in webhook payload
+2. **Environment variable**: `PHONE_NUMBERS` from `.env` file (fallback)
+3. **Error**: If neither is provided
+
+### Implementation Approach
+The service now sends individual messages to each recipient instead of creating group chats via AppleScript. This approach is:
+
+1. **More Reliable**: Avoids AppleScript syntax issues with phone number formatting
+2. **Better Error Handling**: Individual failures don't break the entire group
+3. **Same End Result**: All recipients receive the message
+4. **Easier Debugging**: Clear success/failure reporting per recipient
+
+**Note**: While this doesn't create a group chat in the Messages app, it achieves the same goal of sending a message to multiple recipients simultaneously.
 
 ## Benefits
 
@@ -61,6 +77,8 @@ end tell
 3. **Cost**: Potentially lower costs for bulk messaging
 4. **Engagement**: Group chats encourage conversation between recipients
 5. **Simplicity**: Cleaner code and better error handling
+6. **Flexibility**: Dynamic phone number selection per request
+7. **Reusability**: Same service can handle different recipient groups
 
 ## Testing
 
@@ -80,10 +98,17 @@ curl -X POST http://localhost:3000/webhook \
 
 ## Environment Variables
 
-No changes to environment variables required. The existing `PHONE_NUMBERS` format works:
+The `PHONE_NUMBERS` environment variable is now **optional** and serves as a fallback:
+
 ```bash
+# Optional fallback phone numbers
 PHONE_NUMBERS=+1234567890,+1987654321,+1555123456
 ```
+
+**New Flexibility:**
+- **Request-based**: Pass phone numbers directly in webhook requests
+- **Environment fallback**: Use `.env` file for default recipients
+- **Hybrid approach**: Mix both methods as needed
 
 ## Backward Compatibility
 

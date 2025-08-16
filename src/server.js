@@ -20,8 +20,9 @@ app.get("/health", (req, res) => {
 app.post("/webhook", handleWebhook);
 
 // Start the server
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
   console.log(`Server is running on http://localhost:${PORT}`);
+  console.log("✅ iMessage service ready - using AppleScript integration");
 });
 
 // Graceful shutdown handling

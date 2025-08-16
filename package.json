@@ -11,7 +11,9 @@
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
     "test": "node test-group-message.js",
-    "test:group": "node test-group-message.js"
+    "test:group": "node test-group-message.js",
+    "test:webhook": "node test-webhook-flexibility.js",
+    "test:all": "node test-all-functionality.js"
   },
   "dependencies": {
     "dotenv": "16.4.7",

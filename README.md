@@ -1,13 +1,12 @@
 # Message Relay Service
 
-A Node.js webhook service that receives messages and sends them via iMessage on macOS. Designed to run in Docker containers with ARM64 architecture support for Apple Silicon Macs.
+A Node.js webhook service that receives messages and sends them via iMessage on macOS.
 
 ## 🚀 Features
 
 - **Webhook Endpoint**: Accepts POST requests with message payloads
-- **iMessage Integration**: Sends group messages via macOS Messages app
-- **Group Messaging**: Creates group chats instead of sending individual messages
-- **Docker Support**: ARM64-optimized container for Apple Silicon
+- **iMessage Integration**: Sends messages via macOS Messages app using AppleScript
+- **Group Messaging**: Sends to multiple recipients simultaneously (individual messages)
 - **Health Monitoring**: Built-in health check endpoint
 - **Graceful Shutdown**: Proper signal handling
 - **Resource Management**: Memory and CPU limits for stability
@@ -20,9 +19,7 @@ message-relay/
 │   ├── server.js              # Express server entry point
 │   └── services/
 │       ├── webhookHandler.js  # Webhook request handler
-│       └── imessageSender.js  # iMessage sending service
-├── docker-compose.yml         # Docker Compose configuration
-├── Dockerfile                 # ARM64-optimized Docker image
+│       └── imessageSender.js  # iMessage sending service (AppleScript)
 ├── package.json              # Node.js dependencies
 ├── run-macos.sh             # Direct macOS execution script
 └── README.md                # This file
@@ -33,58 +30,41 @@ message-relay/
 ### Prerequisites
 
 - macOS with Messages app
-- Docker Desktop (for containerized deployment)
 - Node.js 20+ (for direct execution)
 
-### Option 1: Docker Deployment (Recommended)
+**Note**: The service uses AppleScript to interact with the macOS Messages app. No additional tools are required.
 
 1. **Clone the repository:**
+
    ```bash
    git clone <repository-url>
    cd message-relay
    ```
 
-2. **Create environment file:**
-   Create a `.env` file with your phone numbers:
+2. **Create environment file (optional):**
+   Create a `.env` file with fallback phone numbers (optional):
+
    ```bash
    PHONE_NUMBERS=+1234567890,+1987654321
    PORT=3000
    NODE_ENV=production
    ```
 
-3. **Build and run with Docker Compose:**
-   ```bash
-   # Build the ARM64 container
-   docker-compose build
-   
-   # Start the service
-   docker-compose up -d
-   
-   # View logs
-   docker-compose logs -f
-   
-   # Stop the service
-   docker-compose down
-   ```
+   **Note:** The `PHONE_NUMBERS` environment variable is now optional. You can provide phone numbers directly in each webhook request instead.
 
-4. **Test the webhook:**
-   ```bash
-   curl -X POST http://localhost:3000/webhook \
-     -H "Content-Type: application/json" \
-     -d '{"message": "Hello from Docker!"}'
-   ```
-
-### Option 2: Direct macOS Execution (For iMessage Testing)
+### Running the script
 
 For testing actual iMessage functionality:
 
 1. **Run directly on macOS:**
+
    ```bash
    chmod +x run-macos.sh
    ./run-macos.sh
    ```
 
 2. **Test with actual Messages:**
+
    ```bash
    curl -X POST http://localhost:3000/webhook \
      -H "Content-Type: application/json" \
@@ -95,18 +75,13 @@ For testing actual iMessage functionality:
 
 ### Environment Variables
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `PHONE_NUMBERS` | Comma-separated phone numbers | `+1234567890,+1987654321` |
-| `PORT` | Server port | `3000` |
-| `NODE_ENV` | Environment mode | `production` |
+| Variable | Description | Example | Required |
+|----------|-------------|---------|----------|
+| `PHONE_NUMBERS` | Comma-separated phone numbers (fallback) | `+1234567890,+1987654321` | No* |
+| `PORT` | Server port | `3000` | No |
+| `NODE_ENV` | Environment mode | `production` | No |
 
-### Docker Configuration
-
-The service uses ARM64-optimized Docker images:
-- **Base Image**: `arm64v8/node:20-alpine`
-- **Platform**: `linux/arm64`
-- **Architecture**: Optimized for Apple Silicon (M1/M2/M3)
+*`PHONE_NUMBERS` is only required if you don't provide phone numbers in the webhook request body.
 
 ## 📡 API Reference
 
@@ -114,23 +89,41 @@ The service uses ARM64-optimized Docker images:
 
 **POST** `/webhook`
 
-Send a group message to all configured phone numbers (creates a group chat).
+Send a message to all configured phone numbers (sends individual messages to each recipient).
 
 **Request Body:**
+
 ```json
 {
-  "message": "Your message here"
+  "message": "Your message here",
+  "phoneNumbers": ["+1234567890", "+1987654321"],
+  "groupKeyword": "Weekend Crew"
 }
 ```
 
+**Fields:**
+
+- `message` (required): The message to send
+- `phoneNumbers` (optional): Array of phone numbers. If not provided, uses `PHONE_NUMBERS` environment variable
+- `groupKeyword` (optional): Keyword to find existing group chat. If provided, sends to the group chat instead of individual recipients
+
 **Response:**
+
 ```json
 {
   "success": true,
-  "message": "Group message sent successfully",
-  "recipients": 2
+  "message": "Message sent to group chat: Weekend Crew",
+  "recipients": 2,
+  "phoneNumbers": ["+1234567890", "+1987654321"],
+  "groupChat": "Weekend Crew"
 }
 ```
+
+**Note**:
+
+- If `groupKeyword` is provided, the message is sent to the existing group chat
+- If no `groupKeyword` or group chat not found, messages are sent individually to each recipient
+- The `groupChat` field shows which group chat was used (if any)
 
 ### Health Check
 
@@ -139,6 +132,7 @@ Send a group message to all configured phone numbers (creates a group chat).
 Check service health status.
 
 **Response:**
+
 ```json
 {
   "status": "healthy",
@@ -151,10 +145,20 @@ Check service health status.
 ### Test Different Scenarios
 
 ```bash
-# Basic message
+# Basic message (uses environment variable phone numbers)
 curl -X POST http://localhost:3000/webhook \
   -H "Content-Type: application/json" \
   -d '{"message": "Hello World!"}'
+
+# Message with custom phone numbers
+curl -X POST http://localhost:3000/webhook \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Custom recipients message!", "phoneNumbers": ["+1234567890", "+1987654321"]}'
+
+# Message to existing group chat
+curl -X POST http://localhost:3000/webhook \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Group chat message!", "phoneNumbers": ["+1234567890", "+1987654321"], "groupKeyword": "Weekend Crew"}'
 
 # Message with emojis
 curl -X POST http://localhost:3000/webhook \
@@ -175,12 +179,14 @@ curl -X GET http://localhost:3000/health
 ### Common Issues
 
 1. **Container won't start:**
+
    ```bash
    docker-compose down
    docker-compose up --build -d
    ```
 
 2. **Permission denied errors:**
+
    ```bash
    chmod +x run-macos.sh
    ```
@@ -189,30 +195,12 @@ curl -X GET http://localhost:3000/health
    - Ensure Messages app is open on macOS
    - Check phone numbers are in correct format
    - Verify iMessage is enabled for target numbers
-
-### Logs and Debugging
-
-```bash
-# View container logs
-docker logs message-relay
-
-# Follow logs in real-time
-docker-compose logs -f
-
-# Check container status
-docker ps
-```
+   - Ensure the service has permission to control the Messages app
 
 ## 🏗️ Architecture
 
-### Docker Setup
-- **ARM64 Architecture**: Optimized for Apple Silicon
-- **Multi-stage Build**: Smaller, secure images
-- **Health Checks**: Automatic monitoring
-- **Resource Limits**: Memory and CPU constraints
-- **Graceful Shutdown**: Proper signal handling
-
 ### Service Components
+
 - **Express Server**: HTTP endpoint handling
 - **Webhook Handler**: Request validation and processing
 - **iMessage Sender**: AppleScript integration for Messages app with group messaging support
@@ -256,6 +244,4 @@ This project is licensed under the MIT License. See the LICENSE file for details
 
 ## 🙏 Acknowledgments
 
-- Built for ARM64 architecture compatibility
-- Optimized for Apple Silicon Macs
-- Docker-first deployment strategy
+- Uses native AppleScript for reliable iMessage integration

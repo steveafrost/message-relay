@@ -9,8 +9,9 @@
 git clone <repository-url>
 cd message-relay
 
-# 2. Create environment file
+# 2. Create environment file (optional)
 echo "PHONE_NUMBERS=+1234567890,+1987654321" > .env
+echo "# Note: PHONE_NUMBERS is now optional - can be provided in webhook requests"
 
 # 3. Deploy with Docker Compose
 docker-compose up -d
@@ -61,20 +62,22 @@ curl -X POST http://localhost:3000/webhook \
 
 - [ ] macOS with Messages app installed
 - [ ] Docker Desktop running
-- [ ] Phone numbers configured in `.env`
+- [ ] Phone numbers configured in `.env` (optional) or provided in webhook requests
 - [ ] Network access to port 3000
 - [ ] iMessage enabled for target numbers
 
 ### Deployment Steps
 
-1. **Environment Setup**
+1. **Environment Setup (Optional)**
    ```bash
-   # Create .env file
+   # Create .env file for fallback phone numbers (optional)
    cat > .env << EOF
    PHONE_NUMBERS=+1234567890,+1987654321
    PORT=3000
    NODE_ENV=production
    EOF
+   
+   # Note: PHONE_NUMBERS is optional - can be provided in webhook requests instead
    ```
 
 2. **Docker Deployment**
@@ -104,7 +107,7 @@ curl -X POST http://localhost:3000/webhook \
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `PHONE_NUMBERS` | ✅ | - | Comma-separated phone numbers |
+| `PHONE_NUMBERS` | ❌ | - | Comma-separated phone numbers (fallback) |
 | `PORT` | ❌ | `3000` | Server port |
 | `NODE_ENV` | ❌ | `production` | Environment mode |
 
