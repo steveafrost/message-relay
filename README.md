@@ -5,7 +5,8 @@ A Node.js webhook service that receives messages and sends them via iMessage on 
 ## 🚀 Features
 
 - **Webhook Endpoint**: Accepts POST requests with message payloads
-- **iMessage Integration**: Sends messages via macOS Messages app
+- **iMessage Integration**: Sends group messages via macOS Messages app
+- **Group Messaging**: Creates group chats instead of sending individual messages
 - **Docker Support**: ARM64-optimized container for Apple Silicon
 - **Health Monitoring**: Built-in health check endpoint
 - **Graceful Shutdown**: Proper signal handling
@@ -113,7 +114,7 @@ The service uses ARM64-optimized Docker images:
 
 **POST** `/webhook`
 
-Send a message to all configured phone numbers.
+Send a group message to all configured phone numbers (creates a group chat).
 
 **Request Body:**
 ```json
@@ -126,7 +127,8 @@ Send a message to all configured phone numbers.
 ```json
 {
   "success": true,
-  "message": "Message sent successfully"
+  "message": "Group message sent successfully",
+  "recipients": 2
 }
 ```
 
@@ -213,7 +215,7 @@ docker ps
 ### Service Components
 - **Express Server**: HTTP endpoint handling
 - **Webhook Handler**: Request validation and processing
-- **iMessage Sender**: AppleScript integration for Messages app
+- **iMessage Sender**: AppleScript integration for Messages app with group messaging support
 
 ## 📝 Development
 
