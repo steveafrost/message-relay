@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Service Label -->
+    <key>Label</key>
+    <string>com.message-relay</string>
+    
+    <!-- Program to run -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/white-box/.nvm/versions/node/v22.14.0/bin/node</string>
+        <string>/Users/white-box/Docker/message-relay/src/server.js</string>
+    </array>
+    
+    <!-- Working Directory -->
+    <key>WorkingDirectory</key>
+    <string>/Users/white-box/Docker/message-relay</string>
+    
+    <!-- Environment Variables -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>NODE_ENV</key>
+        <string>production</string>
+    </dict>
+    
+    <!-- Load .env file by reading it first -->
+    <!-- Note: launchd doesn't load .env automatically, so we use a wrapper script -->
+    
+    <!-- Run on Load (at boot) -->
+    <key>RunAtLoad</key>
+    <true/>
+    
+    <!-- Keep Alive (restart if it crashes) -->
+    <key>KeepAlive</key>
+    <true/>
+    
+    <!-- Logging -->
+    <key>StandardOutPath</key>
+    <string>/Users/white-box/Docker/message-relay/logs/service.log</string>
+    
+    <key>StandardErrorPath</key>
+    <string>/Users/white-box/Docker/message-relay/logs/service.error.log</string>
+    
+    <!-- Nice level (process priority, 0 is normal) -->
+    <key>Nice</key>
+    <integer>0</integer>
+    
+    <!-- Run as current user (not root) -->
+    <key>UserName</key>
+    <string>white-box</string>
+</dict>
+</plist>

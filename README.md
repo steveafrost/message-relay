@@ -30,9 +30,9 @@ message-relay/
 ### Prerequisites
 
 - macOS with Messages app
-- Node.js 20+ (for direct execution)
+- Node.js 20+
 
-**Note**: The service uses AppleScript to interact with the macOS Messages app. No additional tools are required.
+**Note**: The service uses AppleScript to interact with the macOS Messages app.
 
 1. **Clone the repository:**
 
@@ -52,24 +52,49 @@ message-relay/
 
    **Note:** The `PHONE_NUMBERS` environment variable is now optional. You can provide phone numbers directly in each webhook request instead.
 
-### Running the script
+### Running the Service
 
-For testing actual iMessage functionality:
+#### Option 1: Auto-Start on Boot (Recommended)
 
-1. **Run directly on macOS:**
+Set up the service to start automatically when your Mac boots:
 
-   ```bash
-   chmod +x run-macos.sh
-   ./run-macos.sh
-   ```
+```bash
+# One-time setup
+./setup-autostart.sh
 
-2. **Test with actual Messages:**
+# Install helpful aliases
+./install-aliases.sh
+source ~/.zshrc
+```
 
-   ```bash
-   curl -X POST http://localhost:3000/webhook \
-     -H "Content-Type: application/json" \
-     -d '{"message": "Testing actual iMessage!"}'
-   ```
+Now you can use commands like:
+```bash
+relay-start          # Start service
+relay-stop           # Stop service
+relay-restart        # Restart service
+relay-logs           # Watch logs
+relay-status         # Check status
+relay-help           # See all commands
+```
+
+See `AUTOSTART_GUIDE.md` for complete documentation.
+
+#### Option 2: Manual Execution
+
+Run directly when needed:
+
+```bash
+chmod +x run-macos.sh
+./run-macos.sh
+```
+
+#### Test the Service
+
+```bash
+curl -X POST http://localhost:3000/webhook \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Testing iMessage!", "phoneNumbers": ["+1234567890"]}'
+```
 
 ## 🔧 Configuration
 
@@ -163,7 +188,7 @@ curl -X POST http://localhost:3000/webhook \
 # Message with emojis
 curl -X POST http://localhost:3000/webhook \
   -H "Content-Type: application/json" \
-  -d '{"message": "🚀 Docker container is working!"}'
+  -d '{"message": "🚀 Service is working!"}'
 
 # Test error handling (missing message)
 curl -X POST http://localhost:3000/webhook \
@@ -178,24 +203,51 @@ curl -X GET http://localhost:3000/health
 
 ### Common Issues
 
-1. **Container won't start:**
-
-   ```bash
-   docker-compose down
-   docker-compose up --build -d
-   ```
-
-2. **Permission denied errors:**
+1. **Permission denied errors:**
 
    ```bash
    chmod +x run-macos.sh
+   chmod +x setup-autostart.sh
    ```
 
-3. **Messages not sending:**
+2. **Messages not sending:**
    - Ensure Messages app is open on macOS
-   - Check phone numbers are in correct format
+   - Check phone numbers are in correct format (+1234567890)
    - Verify iMessage is enabled for target numbers
-   - Ensure the service has permission to control the Messages app
+   - Grant Terminal or your shell app accessibility permissions in System Preferences:
+     - Go to System Preferences → Security & Privacy → Privacy → Automation
+     - Allow Terminal to control Messages
+
+3. **Port already in use:**
+
+   ```bash
+   # Find what's using port 3000
+   lsof -i :3000
+   
+   # Change the port in .env file
+   PORT=8080
+   ```
+
+4. **Service won't start (autostart):**
+   
+   ```bash
+   # Check service status
+   relay-status
+   
+   # View logs
+   relay-logs
+   
+   # Reinstall service
+   ./setup-autostart.sh
+   ```
+
+5. **Can't find relay commands:**
+   
+   ```bash
+   # Install/reinstall aliases
+   ./install-aliases.sh
+   source ~/.zshrc
+   ```
 
 ## 🏗️ Architecture
 
@@ -225,9 +277,7 @@ npm test
 ```bash
 npm start          # Start production server
 npm run dev        # Start development server with nodemon
-npm run docker:up  # Start Docker container
-npm run docker:down # Stop Docker container
-npm run docker:logs # View Docker logs
+npm test           # Run tests
 ```
 
 ## 🤝 Contributing
