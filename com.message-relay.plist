@@ -10,12 +10,12 @@
     <key>ProgramArguments</key>
     <array>
         <string>/Users/white-box/.nvm/versions/node/v22.14.0/bin/node</string>
-        <string>/Users/white-box/Docker/message-relay/src/server.js</string>
+        <string>/Users/white-box/Docker/chat/message-relay/src/server.js</string>
     </array>
     
     <!-- Working Directory -->
     <key>WorkingDirectory</key>
-    <string>/Users/white-box/Docker/message-relay</string>
+    <string>/Users/white-box/Docker/chat/message-relay</string>
     
     <!-- Environment Variables -->
     <key>EnvironmentVariables</key>
@@ -39,10 +39,10 @@
     
     <!-- Logging -->
     <key>StandardOutPath</key>
-    <string>/Users/white-box/Docker/message-relay/logs/service.log</string>
+    <string>/Users/white-box/Docker/chat/message-relay/logs/service.log</string>
     
     <key>StandardErrorPath</key>
-    <string>/Users/white-box/Docker/message-relay/logs/service.error.log</string>
+    <string>/Users/white-box/Docker/chat/message-relay/logs/service.error.log</string>
     
     <!-- Nice level (process priority, 0 is normal) -->
     <key>Nice</key>
